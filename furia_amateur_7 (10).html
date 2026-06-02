@@ -1,0 +1,1691 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="screen-orientation" content="portrait">
+    <title>Furia Amateur 7: El Conflicto</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+
+        /* ── Utilidades que reemplazaban Tailwind ── */
+        .hidden { display: none !important; }
+        .block { display: block; }
+        .w-full { width: 100%; }
+        .max-w-lg { max-width: 32rem; }
+        .max-w-xs { max-width: 20rem; }
+        .text-center { text-align: center; }
+        .uppercase { text-transform: uppercase; }
+        .leading-relaxed { line-height: 1.625; }
+        .font-black { font-weight: 900; }
+        .tracking-tighter { letter-spacing: -0.05em; }
+        .tracking-widest { letter-spacing: 0.1em; }
+        .text-xs { font-size: 0.75rem; }
+        .text-lg { font-size: 1.125rem; }
+        .text-4xl { font-size: 2.25rem; }
+        .text-gray-300 { color: #d1d5db; }
+        .text-gray-400 { color: #9ca3af; }
+        .mb-0 { margin-bottom: 0; }
+        .mb-2 { margin-bottom: 0.5rem; }
+        .mb-4 { margin-bottom: 1rem; }
+        .mb-6 { margin-bottom: 1.5rem; }
+        @media (min-width: 768px) {
+            .md\:text-5xl { font-size: 3rem; }
+        }
+        
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #050510;
+            color: white;
+            font-family: 'Inter', sans-serif;
+            user-select: none;
+            touch-action: none; /* Prevenir scroll en móviles */
+        }
+
+        #gameCanvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            filter: drop-shadow(0 0 20px rgba(0, 255, 128, 0.2));
+            z-index: 10;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 2rem;
+            z-index: 20;
+        }
+
+        /* Controles Móviles - Solo visibles en dispositivos táctiles */
+        #mobile-controls {
+            display: none;
+        }
+        @media (pointer: coarse) {
+            #mobile-controls {
+                display: flex;
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                pointer-events: none;
+                z-index: 30;
+            }
+            .desktop-hint { display: none; }
+        }
+
+        .joystick-zone {
+            position: absolute;
+            bottom: 2rem;
+            left: 2rem;
+            width: 120px;
+            height: 120px;
+            background: rgba(255,255,255,0.1);
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 50%;
+            pointer-events: auto;
+        }
+        
+        .joystick-knob {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 50px;
+            height: 50px;
+            background: rgba(255,255,255,0.5);
+            border-radius: 50%;
+            box-shadow: 0 0 15px rgba(255,255,255,0.3);
+            transition: transform 0.1s;
+        }
+
+        .btn-breathe-mobile {
+            position: absolute;
+            bottom: 2rem;
+            right: 2rem;
+            width: 90px;
+            height: 90px;
+            background: rgba(59, 130, 246, 0.4);
+            border: 3px solid rgba(96, 165, 250, 0.8);
+            border-radius: 50%;
+            pointer-events: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 0.8rem;
+            font-weight: bold;
+            text-shadow: 0 0 5px black;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+        }
+        .btn-breathe-mobile:active {
+            background: rgba(59, 130, 246, 0.7);
+            transform: scale(0.95);
+        }
+
+        .crt-effect {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+            z-index: 50;
+            opacity: 0.4;
+        }
+
+        .stress-bar-container {
+            width: 100%;
+            max-width: 300px;
+            height: 24px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            box-shadow: 0 0 15px rgba(255, 0, 0, 0.3);
+        }
+
+        #stress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #ffcc00, #ff0000);
+            transition: width 0.1s linear, background-color 0.3s;
+            box-shadow: 0 0 10px #ff0000;
+        }
+
+        #blood-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: radial-gradient(circle, rgba(255,0,0,0) 40%, rgba(255,0,0,0.8) 100%);
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: none;
+            z-index: 40;
+        }
+
+        .shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+        .super-shake { animation: shake 0.8s cubic-bezier(.36,.07,.19,.97) both infinite; }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-2px, 0, 0); }
+            20%, 80% { transform: translate3d(4px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-8px, 0, 0); }
+            40%, 60% { transform: translate3d(8px, 0, 0); }
+        }
+        
+        .screen-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.9);
+            z-index: 60;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 2rem;
+        }
+        
+        .hidden { display: none !important; }
+        
+        .btn-primary {
+            padding: 1rem 2rem;
+            background: white;
+            color: black;
+            font-weight: 900;
+            font-size: 1.25rem;
+            border-radius: 9999px;
+            transition: all 0.2s;
+            box-shadow: 0 0 20px rgba(255,255,255,0.5);
+            cursor: pointer;
+            border: none;
+        }
+        .btn-primary:hover { background: #15803d; transform: scale(1.05); }
+        
+        #referee-call {
+            position: absolute;
+            top: 20%;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 4rem;
+            font-weight: 900;
+            color: #fde047;
+            text-shadow: 0 0 20px #fde047;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s, transform 0.3s;
+            z-index: 45;
+        }
+        #referee-call.active {
+            opacity: 1;
+            transform: translateX(-50%) scale(1.2);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="blood-overlay"></div>
+    <div class="crt-effect"></div>
+    <canvas id="gameCanvas"></canvas>
+    <div id="referee-call">¡FALTA!</div>
+
+    <!-- UI Layer -->
+    <div id="ui-layer" class="hidden">
+
+        <!-- BARRA SUPERIOR compacta -->
+        <div style="position:absolute; top:0; left:0; right:0; padding:0.35rem 0.75rem; display:flex; align-items:center; justify-content:space-between; background:rgba(0,0,0,0.7); backdrop-filter:blur(8px); z-index:25; pointer-events:none; box-sizing:border-box;">
+
+            <!-- Jugador -->
+            <div style="text-align:left; min-width:60px;">
+                <div id="player-name-display" style="font-size:0.55rem; font-weight:900; letter-spacing:0.08em; color:#00d2ff; text-transform:uppercase; text-shadow:0 0 6px #00d2ff; white-space:nowrap; overflow:hidden; max-width:75px; text-overflow:ellipsis;"></div>
+                <div id="score-player" style="font-size:1.7rem; font-weight:900; color:#00d2ff; line-height:1; text-shadow:0 0 12px rgba(0,210,255,0.7);">0</div>
+            </div>
+
+            <!-- Centro -->
+            <div style="text-align:center; flex:1;">
+                <div id="timer-display" style="font-size:1.3rem; font-weight:900; color:#fde047; text-shadow:0 0 10px rgba(253,224,71,0.8); line-height:1;">45</div>
+                <div style="font-size:0.45rem; color:rgba(255,255,255,0.3); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:2px;">seg</div>
+                <div style="width:80px; margin:0 auto;">
+                    <div style="font-size:0.45rem; color:rgba(255,255,255,0.4); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:1px;" id="stress-label">Enojómetro</div>
+                    <div class="stress-bar-container" style="max-width:80px; height:7px;">
+                        <div id="stress-fill"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rival + ayuda -->
+            <div style="text-align:right; min-width:60px; pointer-events:auto;">
+                <div style="font-size:0.55rem; font-weight:900; letter-spacing:0.08em; color:#ff003c; text-transform:uppercase; text-shadow:0 0 6px #ff003c;">Malandrines</div>
+                <div id="score-enemy" style="font-size:1.7rem; font-weight:900; color:#ff003c; line-height:1; text-shadow:0 0 12px rgba(255,0,60,0.7);">0</div>
+                <div style="position:relative; display:inline-block;">
+                    <button id="btn-help" onclick="toggleHelp()"
+                        style="width:18px; height:18px; border-radius:50%; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); color:rgba(255,255,255,0.5); font-weight:900; font-size:0.6rem; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; margin-top:1px;">?</button>
+                    <div id="help-panel" style="display:none; position:absolute; top:22px; right:0; background:rgba(0,0,0,0.92); border:1px solid rgba(255,255,255,0.15); border-radius:8px; padding:0.5rem 0.7rem; width:180px; font-size:0.65rem; color:#ccc; line-height:1.7; z-index:50; text-align:left; pointer-events:auto;">
+                        <b style="color:white">Mover:</b> W A S D / Flechas<br>
+                        <b style="color:white">Chutar:</b> Clic → arrastra → suelta<br>
+                        <b style="color:#93c5fd">Enojómetro:</b> Tap ESPACIO
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Controles Móviles -->
+    <div id="mobile-controls">
+        <div class="joystick-zone" id="joystick">
+            <div class="joystick-knob" id="knob"></div>
+        </div>
+        <div style="position:absolute; bottom:2rem; right:2rem; display:flex; flex-direction:column; gap:0.6rem; pointer-events:auto;">
+            <div id="btn-shoot-mobile"
+                style="width:80px; height:80px; background:rgba(253,224,71,0.25); border:3px solid rgba(253,224,71,0.8); border-radius:50%; display:flex; align-items:center; justify-content:center; text-align:center; font-size:0.7rem; font-weight:900; color:#fde047; text-shadow:0 0 5px black; box-shadow:0 0 20px rgba(253,224,71,0.4); user-select:none;">
+                ⚽<br>TIRO
+            </div>
+            <div class="btn-breathe-mobile" id="btn-breathe">
+                TAP<br>RESPIRAR
+            </div>
+        </div>
+    </div>
+
+    <!-- PANTALLA DE INSTRUCCIONES (entre intro y juego) -->
+    <div id="instructions-screen" class="screen-overlay hidden">
+        <h2 style="font-size:1.6rem; font-weight:900; color:#fde047; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:1.2rem; text-shadow:0 0 15px rgba(253,224,71,0.6);">¿Cómo jugar?</h2>
+
+        <!-- ESCRITORIO -->
+        <div id="instr-desktop" style="max-width:380px; width:100%;">
+            <div style="display:flex; flex-direction:column; gap:0.75rem; margin-bottom:1.8rem;">
+                <div style="background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.12); border-radius:12px; padding:0.8rem 1rem; display:flex; align-items:center; gap:0.9rem;">
+                    <span style="font-size:1.4rem;">⌨️</span>
+                    <div><b style="color:white; font-size:0.85rem;">Mover</b><br><span style="color:#9ca3af; font-size:0.78rem;">W A S D o teclas de flechas</span></div>
+                </div>
+                <div style="background:rgba(253,224,71,0.1); border:1px solid rgba(253,224,71,0.35); border-radius:12px; padding:0.8rem 1rem; display:flex; align-items:center; gap:0.9rem;">
+                    <span style="font-size:1.4rem;">⚽</span>
+                    <div><b style="color:#fde047; font-size:0.85rem;">Disparar</b><br><span style="color:#9ca3af; font-size:0.78rem;">Cuando tengas el balón, mantén <kbd style="background:rgba(255,255,255,0.15); padding:1px 6px; border-radius:4px;">F</kbd> — la flecha oscila. Suelta para tirar.</span></div>
+                </div>
+                <div style="background:rgba(59,130,246,0.15); border:1px solid rgba(96,165,250,0.3); border-radius:12px; padding:0.8rem 1rem; display:flex; align-items:center; gap:0.9rem;">
+                    <span style="font-size:1.4rem;">🫁</span>
+                    <div><b style="color:#93c5fd; font-size:0.85rem;">Bajar Enojómetro</b><br><span style="color:#9ca3af; font-size:0.78rem;">Toca <kbd style="background:rgba(255,255,255,0.15); padding:1px 6px; border-radius:4px; font-size:0.75rem;">ESPACIO</kbd> rápido varias veces</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MÓVIL -->
+        <div id="instr-mobile" style="max-width:380px; width:100%; display:none;">
+            <div style="display:flex; flex-direction:column; gap:0.75rem; margin-bottom:1.8rem;">
+                <div style="background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.12); border-radius:12px; padding:0.8rem 1rem; display:flex; align-items:center; gap:0.9rem;">
+                    <span style="font-size:1.4rem;">🕹️</span>
+                    <div><b style="color:white; font-size:0.85rem;">Mover</b><br><span style="color:#9ca3af; font-size:0.78rem;">Joystick en la esquina inferior izquierda</span></div>
+                </div>
+                <div style="background:rgba(253,224,71,0.1); border:1px solid rgba(253,224,71,0.35); border-radius:12px; padding:0.8rem 1rem; display:flex; align-items:center; gap:0.9rem;">
+                    <span style="font-size:1.4rem;">⚽</span>
+                    <div><b style="color:#fde047; font-size:0.85rem;">Disparar</b><br><span style="color:#9ca3af; font-size:0.78rem;">Cuando tengas el balón, mantén ⚽ TIRO — la flecha oscila. Levanta para tirar.</span></div>
+                </div>
+                <div style="background:rgba(59,130,246,0.15); border:1px solid rgba(96,165,250,0.3); border-radius:12px; padding:0.8rem 1rem; display:flex; align-items:center; gap:0.9rem;">
+                    <span style="font-size:1.4rem;">🫁</span>
+                    <div><b style="color:#93c5fd; font-size:0.85rem;">Bajar Enojómetro</b><br><span style="color:#9ca3af; font-size:0.78rem;">Toca el botón TAP RESPIRAR (esquina inferior derecha)</span></div>
+                </div>
+            </div>
+        </div>
+
+        <button onclick="launchGame()" class="btn-primary" style="background:#16a34a; color:white; box-shadow:0 0 20px rgba(22,163,74,0.5);">
+            ¡A JUGAR!
+        </button>
+    </div>
+
+    <!-- Pantalla de Intro -->
+    <div id="intro-screen" class="screen-overlay" style="display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;">
+        <h1 class="text-4xl md:text-5xl font-black mb-4 uppercase tracking-tighter" style="color: #ff003c; text-shadow: 0 0 30px rgba(255,0,60,0.7);">Furia Amateur 7</h1>
+        <div class="max-w-lg text-gray-300 text-lg mb-6 leading-relaxed" style="text-align:center;">
+            <p class="mb-4">Estás jugando la final y el equipo contrario es muy violento.</p>
+            <p class="mb-4">Debes anotar <strong style="color: #fde047; font-weight: 900;">5 goles en 45 segundos</strong> para obtener la copa.</p>
+            <p class="mb-0">Pero cuidado: estás solo contra siete rivales. Si tu <strong style="color:#fde047;">Enojómetro</strong> llega a 100, todo llegará a los golpes y con eso el árbitro cancela el partido.</p>
+        </div>
+
+        <!-- Input nombre -->
+        <div class="mb-6 w-full max-w-xs" style="text-align:center;">
+            <label class="block text-xs text-gray-400 uppercase tracking-widest mb-2 text-center">Nombra a tu equipo</label>
+            <input id="player-name-input" type="text" maxlength="20" placeholder="Tu equipo"
+                style="width:100%; background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.2); border-radius: 9999px; padding: 0.6rem 1.2rem; color: white; font-size: 1rem; text-align: center; outline: none;"
+                onfocus="this.style.borderColor='rgba(255,255,255,0.6)'"
+                onblur="this.style.borderColor='rgba(255,255,255,0.2)'"
+            />
+        </div>
+
+        <button onclick="showInstructions()" class="btn-primary mb-6" style="background: #16a34a; color: white; box-shadow: 0 0 20px rgba(22,163,74,0.5);">
+            JUEGA AHORA
+        </button>
+
+        <!-- Crédito -->
+        <p style="font-size: 0.7rem; letter-spacing: 0.15em; color: rgba(255,255,255,0.35); text-transform: uppercase; text-align: center;">
+            Una experiencia de <span style="color: rgba(255,255,255,0.6); font-weight: 700;">Vanguardia IA Lab</span>
+        </p>
+    </div>
+
+    <!-- PANTALLA DE DERROTA -->
+    <div id="defeat-screen" class="screen-overlay hidden">
+        <h2 style="font-size:3rem; font-weight:900; text-transform:uppercase; letter-spacing:-0.02em; color:#ff003c; text-shadow:0 0 30px rgba(255,0,60,0.8); margin-bottom:0.5rem;" id="defeat-title">¡TE GOLEARON!</h2>
+
+        <div id="defeat-score" style="font-size:2.8rem; font-weight:900; color:white; letter-spacing:0.05em; margin-bottom:0.4rem;"></div>
+
+        <p id="defeat-line1" style="font-size:1rem; color:#f87171; margin-bottom:0.2rem;"></p>
+        <p style="font-size:0.9rem; color:rgba(255,255,255,0.45); margin-bottom:2rem;">También ganó el caos, la violencia y la destrucción.</p>
+
+        <button onclick="resetGame()" class="btn-primary" style="margin-bottom:1.2rem;">
+            INTENTAR DE NUEVO
+        </button>
+
+        <div style="display:flex; gap:0.75rem; flex-wrap:wrap; justify-content:center; margin-bottom:1.5rem;">
+            <button onclick="shareExperience()"
+                style="padding:0.5rem 1.1rem; background:rgba(255,255,255,0.08); color:#e5e7eb; font-weight:700; font-size:0.8rem; border-radius:9999px; border:2px solid rgba(255,255,255,0.2); cursor:pointer; display:flex; align-items:center; gap:0.35rem;"
+                onmouseover="this.style.background='rgba(255,255,255,0.16)'" onmouseout="this.style.background='rgba(255,255,255,0.08)'">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                Compartir experiencia
+            </button>
+            <a href="https://vanguardia.com.mx/deportes/saltillo-por-que-los-hombres-nos-peleamos-tanto-en-el-futbol-amateur-AK21090374" target="_blank" rel="noopener"
+                style="padding:0.5rem 1.1rem; background:rgba(255,255,255,0.08); color:#e5e7eb; font-weight:700; font-size:0.8rem; border-radius:9999px; border:2px solid rgba(255,255,255,0.2); cursor:pointer; display:flex; align-items:center; gap:0.35rem; text-decoration:none;"
+                onmouseover="this.style.background='rgba(255,255,255,0.16)'" onmouseout="this.style.background='rgba(255,255,255,0.08)'">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                Leer historia
+            </a>
+        </div>
+
+        <p style="font-size:0.65rem; letter-spacing:0.15em; color:rgba(255,255,255,0.25); text-transform:uppercase;">
+            Una experiencia de <span style="color:rgba(255,255,255,0.5); font-weight:700;">Vanguardia IA Lab</span>
+        </p>
+    </div>
+
+    <!-- PANTALLA DE VICTORIA -->
+    <div id="victory-screen" class="screen-overlay hidden">
+        <h2 style="font-size:3rem; font-weight:900; text-transform:uppercase; letter-spacing:-0.02em; color:#34d399; text-shadow:0 0 30px rgba(52,211,153,0.9); margin-bottom:0.5rem;">¡Ganaste!</h2>
+
+        <div id="victory-score" style="font-size:2.8rem; font-weight:900; color:white; letter-spacing:0.05em; margin-bottom:0.8rem;"></div>
+
+        <p style="font-size:1.1rem; color:#a7f3d0; margin-bottom:0.3rem; font-weight:600;">Demostraste que otro fútbol es posible.</p>
+        <p style="font-size:0.95rem; color:rgba(255,255,255,0.55); margin-bottom:2rem;">El mundo es un mejor lugar ahora.</p>
+
+        <button onclick="resetGame()" class="btn-primary" style="background:#16a34a; color:white; box-shadow:0 0 20px rgba(22,163,74,0.5); margin-bottom:1.2rem;">
+            JUGAR DE NUEVO
+        </button>
+
+        <div style="display:flex; gap:0.75rem; flex-wrap:wrap; justify-content:center; margin-bottom:1.5rem;">
+            <button onclick="shareExperience()"
+                style="padding:0.5rem 1.1rem; background:rgba(255,255,255,0.08); color:#e5e7eb; font-weight:700; font-size:0.8rem; border-radius:9999px; border:2px solid rgba(255,255,255,0.2); cursor:pointer; display:flex; align-items:center; gap:0.35rem;"
+                onmouseover="this.style.background='rgba(255,255,255,0.16)'" onmouseout="this.style.background='rgba(255,255,255,0.08)'">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                Compartir experiencia
+            </button>
+            <a href="https://vanguardia.com.mx/deportes/saltillo-por-que-los-hombres-nos-peleamos-tanto-en-el-futbol-amateur-AK21090374" target="_blank" rel="noopener"
+                style="padding:0.5rem 1.1rem; background:rgba(255,255,255,0.08); color:#e5e7eb; font-weight:700; font-size:0.8rem; border-radius:9999px; border:2px solid rgba(255,255,255,0.2); cursor:pointer; display:flex; align-items:center; gap:0.35rem; text-decoration:none;"
+                onmouseover="this.style.background='rgba(255,255,255,0.16)'" onmouseout="this.style.background='rgba(255,255,255,0.08)'">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                Leer historia
+            </a>
+        </div>
+
+        <p style="font-size:0.65rem; letter-spacing:0.15em; color:rgba(255,255,255,0.25); text-transform:uppercase;">
+            Una experiencia de <span style="color:rgba(255,255,255,0.5); font-weight:700;">Vanguardia IA Lab</span>
+        </p>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const bloodOverlay = document.getElementById('blood-overlay');
+        const stressFill = document.getElementById('stress-fill');
+        const stressLabel = document.getElementById('stress-label');
+        
+        const introScreen = document.getElementById('intro-screen');
+        const uiLayer = document.getElementById('ui-layer');
+        const refereeCallEl = document.getElementById('referee-call');
+        
+        let width, height;
+        let animationId;
+        let isGameOver = false;
+        let isGameRunning = false;
+
+        const GOAL_W = 140;
+        const GOAL_D = 18;
+
+        // Configuración Base
+        let config = {
+            friction: 0.92,
+            playerSpeed: 0.8,
+            enemyBaseSpeed: 0.35,
+            enemyCurrentSpeed: 0.35, // Escalará con los goles
+            enemyBaseAggro: 0.6,
+            enemyAggroScale: 0, // Sube con los goles
+            ballFriction: 0.98,
+            maxStress: 100,
+            stressPerHit: 12,
+            passiveStressRate: 0.03,
+            breatheTapRelief: 8, // Cuánto baja el estrés por cada TAP
+            refereeChance: 0.20
+        };
+
+        let gameState = {
+            stress: 0,
+            score: 0,
+            enemyScore: 0,
+            timeLeft: 45,
+            playerName: 'Jugador',
+            enemiesFrozen: false,
+            hasBall: false,
+            shooting: false,
+            shootAngle: 0,
+            shootAngleDir: 1,
+            shootPower: 0,
+            grappled: false,       // jugador atrapado en forcejeo
+            grappleTaps: 0,        // taps acumulados para librarse
+            grappleTimer: 0,       // frames que lleva agarrado
+            grappledBy: [],        // enemigos que lo agarran
+            keys: { up: false, down: false, left: false, right: false },
+            joystick: { x: 0, y: 0 },
+            aiming: false,
+            aimStart: { x: 0, y: 0 },
+            aimCurrent: { x: 0, y: 0 }
+        };
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            if(!isGameRunning && !isGameOver) {
+                 drawPitch(ctx);
+                 drawInitialEntities();
+            }
+        }
+        window.addEventListener('resize', resize);
+
+        const Vector = {
+            sub: (v1, v2) => ({ x: v1.x - v2.x, y: v1.y - v2.y }),
+            mag: (v) => Math.sqrt(v.x * v.x + v.y * v.y),
+            norm: (v) => { const m = Vector.mag(v); return m === 0 ? {x:0, y:0} : { x: v.x / m, y: v.y / m }; },
+            mult: (v, n) => ({ x: v.x * n, y: v.y * n }),
+            dist: (v1, v2) => Vector.mag(Vector.sub(v1, v2))
+        };
+
+        class Entity {
+            constructor(x, y, radius, color) {
+                this.pos = { x, y };
+                this.vel = { x: 0, y: 0 };
+                this.radius = radius;
+                this.color = color;
+                this.trail = [];
+            }
+
+            draw(ctx) {
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = this.color;
+                
+                if(this.trail.length > 1) {
+                    ctx.beginPath();
+                    ctx.moveTo(this.trail[0].x, this.trail[0].y);
+                    for(let i=1; i<this.trail.length; i++) ctx.lineTo(this.trail[i].x, this.trail[i].y);
+                    ctx.strokeStyle = this.color;
+                    ctx.lineWidth = this.radius * 0.8;
+                    ctx.lineCap = 'round';
+                    ctx.globalAlpha = 0.3;
+                    ctx.stroke();
+                    ctx.globalAlpha = 1.0;
+                }
+
+                ctx.beginPath();
+                ctx.arc(this.pos.x, this.pos.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                ctx.shadowBlur = 0; 
+                
+                ctx.beginPath();
+                ctx.arc(this.pos.x - this.radius*0.3, this.pos.y - this.radius*0.3, this.radius*0.3, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255,255,255,0.4)';
+                ctx.fill();
+            }
+
+            updateTrail() {
+                this.trail.push({x: this.pos.x, y: this.pos.y});
+                if(this.trail.length > 10) this.trail.shift();
+            }
+            
+            constrain() {
+                const topBound = HUD_H + this.radius;
+                if (this.pos.x < this.radius) { this.pos.x = this.radius; this.vel.x *= -1; }
+                if (this.pos.x > width - this.radius) { this.pos.x = width - this.radius; this.vel.x *= -1; }
+                if (this.pos.y < topBound) { this.pos.y = topBound; this.vel.y *= -1; }
+                if (this.pos.y > height - this.radius) { this.pos.y = height - this.radius; this.vel.y *= -1; }
+            }
+        }
+
+        class Player extends Entity {
+            constructor() {
+                super(width / 2, height - 150, 20, '#00d2ff');
+            }
+
+            update() {
+                if (gameState.grappled) {
+                    // Paralizado — no puede moverse
+                    this.vel.x *= 0.7;
+                    this.vel.y *= 0.7;
+                    this.pos.x += this.vel.x;
+                    this.pos.y += this.vel.y;
+                    this.constrain();
+                    this.updateTrail();
+                    return;
+                }
+                // Movimiento por teclado
+                if (gameState.keys.up) this.vel.y -= config.playerSpeed;
+                if (gameState.keys.down) this.vel.y += config.playerSpeed;
+                if (gameState.keys.left) this.vel.x -= config.playerSpeed;
+                if (gameState.keys.right) this.vel.x += config.playerSpeed;
+
+                // Movimiento por Joystick Móvil
+                this.vel.x += gameState.joystick.x * config.playerSpeed;
+                this.vel.y += gameState.joystick.y * config.playerSpeed;
+
+                this.vel.x *= config.friction;
+                this.vel.y *= config.friction;
+                this.pos.x += this.vel.x;
+                this.pos.y += this.vel.y;
+
+                if (gameState.stress > 70) this.color = '#ffaa00'; // Stressed
+                else this.color = '#00d2ff'; // Normal
+
+                this.constrain();
+                this.updateTrail();
+            }
+        }
+
+        class Enemy extends Entity {
+            constructor(index) {
+                super(
+                    Math.random() * (width - 80) + 40,
+                    HUD_H + 16 + Math.random() * (height * 0.30),
+                    18, '#ff003c'
+                );
+                this.index = index;
+                // Roles: 0-1 presionadores, 2-3 marcadores, 4-5 bloqueadores, 6 delantero
+                this.role = index <= 1 ? 'presser' : index <= 3 ? 'marker' : index <= 5 ? 'blocker' : 'striker';
+                this.baseAggro = 0.6 + Math.random() * 0.4;
+                this.reactionDelay = Math.random() * 8; // frames de retraso de reacción
+                this.reactionTimer = 0;
+                this.stunTimer = 0;
+                this.targetPos = { x: this.pos.x, y: this.pos.y };
+            }
+
+            update(target) {
+                if (gameState.enemiesFrozen || this.stunTimer > 0) {
+                    if (this.stunTimer > 0) this.stunTimer--;
+                    this.vel.x *= 0.75;
+                    this.vel.y *= 0.75;
+                    this.pos.x += this.vel.x;
+                    this.pos.y += this.vel.y;
+                    this.constrain();
+                    this.updateTrail();
+                    return;
+                }
+
+                // Retraso de reacción para no moverse en bloque
+                this.reactionTimer++;
+                if (this.reactionTimer < this.reactionDelay) {
+                    this.vel.x *= 0.9;
+                    this.vel.y *= 0.9;
+                    this.pos.x += this.vel.x;
+                    this.pos.y += this.vel.y;
+                    this.constrain();
+                    this.updateTrail();
+                    return;
+                }
+
+                const fase = Math.min(gameState.score, DIFFICULTY.length - 1);
+                const d = DIFFICULTY[fase];
+                const timeBoost = gameState.timeLeft < 15 ? 1.35 : 1.0; // presión final
+                const possessionBoost = gameState.hasBall ? 1.2 : 1.0;  // más agresivos con balón
+                const speed = d.speed * timeBoost * possessionBoost;
+                const aggro = (this.baseAggro + d.aggroMod) * timeBoost;
+
+                const distToPlayer = Vector.dist(this.pos, target.pos);
+                const distToBall   = ball ? Vector.dist(this.pos, ball.pos) : 9999;
+
+                let tx = this.pos.x;
+                let ty = this.pos.y;
+
+                if (this.role === 'presser') {
+                    // Presionan al jugador directamente, siempre
+                    tx = target.pos.x;
+                    ty = target.pos.y;
+                } else if (this.role === 'marker') {
+                    // Si el jugador tiene el balón: presionan; sino: se posicionan entre balón y portería propia
+                    if (gameState.hasBall || distToPlayer < 200) {
+                        tx = target.pos.x;
+                        ty = target.pos.y;
+                    } else if (ball) {
+                        // Interceptar ruta del balón
+                        tx = ball.pos.x + (width/2 - ball.pos.x) * 0.4;
+                        ty = ball.pos.y + (height - 80 - ball.pos.y) * 0.4;
+                    }
+                } else if (this.role === 'blocker') {
+                    // Se posicionan en la línea entre jugador y portería rival (bloquean disparos)
+                    const blockY = target.pos.y - 80 - Math.random() * 40;
+                    tx = target.pos.x + (Math.random() - 0.5) * 120;
+                    ty = Math.max(60, blockY);
+                    // Si están muy lejos del jugador, presionan
+                    if (distToPlayer < 180) { tx = target.pos.x; ty = target.pos.y; }
+                } else if (this.role === 'striker') {
+                    // Va al balón e intenta empujarlo hacia la portería del jugador
+                    if (ball && distToBall < 400) {
+                        tx = ball.pos.x;
+                        ty = ball.pos.y;
+                    } else {
+                        // Patrulla zona ofensiva
+                        tx = width/2 + Math.sin(Date.now() * 0.001 + this.index) * 80;
+                        ty = height * 0.6 + Math.sin(Date.now() * 0.0007 + this.index) * 50;
+                    }
+                }
+
+                // Dirección hacia objetivo
+                const dir = Vector.norm({ x: tx - this.pos.x, y: ty - this.pos.y });
+                const dist = Vector.dist(this.pos, { x: tx, y: ty });
+
+                if (dist > 15) {
+                    this.vel.x += dir.x * speed * aggro;
+                    this.vel.y += dir.y * speed * aggro;
+                }
+
+                // Separación entre enemigos (evita piling)
+                enemies.forEach(other => {
+                    if (other === this) return;
+                    const sep = Vector.dist(this.pos, other.pos);
+                    if (sep < this.radius * 2.8) {
+                        const away = Vector.norm(Vector.sub(this.pos, other.pos));
+                        this.vel.x += away.x * 0.6;
+                        this.vel.y += away.y * 0.6;
+                    }
+                });
+
+                this.vel.x *= config.friction;
+                this.vel.y *= config.friction;
+                this.pos.x += this.vel.x;
+                this.pos.y += this.vel.y;
+                this.constrain();
+                this.updateTrail();
+            }
+        }
+
+        class Ball extends Entity {
+            constructor() {
+                super(width / 2, HUD_H + (height - HUD_H) / 2, 14, '#ffffff');
+            }
+
+            update() {
+                if (gameState.hasBall) {
+                    // Balón pegado: teleportarlo justo delante del jugador
+                    const offset = player.radius + this.radius + 4;
+                    const mvMag = Math.sqrt(player.vel.x**2 + player.vel.y**2);
+                    let tx, ty;
+                    if (mvMag > 0.3) {
+                        tx = player.pos.x + (player.vel.x / mvMag) * offset;
+                        ty = player.pos.y + (player.vel.y / mvMag) * offset;
+                    } else {
+                        // quieto: balón arriba del jugador (dirección a portería rival)
+                        tx = player.pos.x;
+                        ty = player.pos.y - offset;
+                    }
+                    // Snap firme con pequeño lerp para que no sea rígido
+                    this.pos.x += (tx - this.pos.x) * 0.7;
+                    this.pos.y += (ty - this.pos.y) * 0.7;
+                    this.vel.x = 0;
+                    this.vel.y = 0;
+                } else {
+                    this.vel.x *= config.ballFriction;
+                    this.vel.y *= config.ballFriction;
+                    this.pos.x += this.vel.x;
+                    this.pos.y += this.vel.y;
+                }
+
+                // Detectar posesión nueva: balón toca al jugador
+                if (!gameState.hasBall && !gameState.shooting) {
+                    const d = Vector.dist(this.pos, player.pos);
+                    if (d < player.radius + this.radius + 10) {
+                        gameState.hasBall = true;
+                    }
+                }
+
+                // Detección de gol — ANTES de constrain para que el balón no rebote de vuelta
+                const myT = HUD_H + 16;
+                const botY = height - 20;
+
+                // Gol del jugador (portería rival, arriba)
+                if (this.pos.y < myT + 5 && this.pos.x > width/2 - GOAL_W/2 && this.pos.x < width/2 + GOAL_W/2) {
+                    scoreGoal();
+                    return;
+                }
+                // Gol rival (portería propia, abajo)
+                if (this.pos.y > botY - 5 && this.pos.x > width/2 - GOAL_W/2 && this.pos.x < width/2 + GOAL_W/2) {
+                    concedGoal();
+                    return;
+                }
+
+                this.constrain();
+                this.updateTrail();
+            }
+        }
+
+        class Goalkeeper extends Entity {
+            constructor() {
+                super(width / 2, HUD_H + 22, 20, '#f59e0b');
+                this.patrolDir = 1;
+            }
+
+            update() {
+                if (!ball) return;
+                // Sigue el balón en X con velocidad moderada
+                const targetX = ball.pos.x;
+                const dx = targetX - this.pos.x;
+                const speed = 2.2;
+                this.vel.x += Math.sign(dx) * speed * 0.12;
+
+                // Limita a zona de portería + un poco de margen
+                const limitL = width/2 - GOAL_W/2 - 10;
+                const limitR = width/2 + GOAL_W/2 + 10;
+                if (this.pos.x < limitL) { this.pos.x = limitL; this.vel.x = 0; }
+                if (this.pos.x > limitR) { this.pos.x = limitR; this.vel.x = 0; }
+
+                this.vel.x *= 0.85;
+                this.pos.x += this.vel.x;
+                this.pos.y = HUD_H + 22; // fijo en Y, debajo de la portería superior
+                this.updateTrail();
+            }
+        }
+
+        let goalkeeper = null;
+
+        class Particle {
+            constructor(x, y, color, speedMult = 1) {
+                this.pos = { x, y };
+                this.vel = { x: (Math.random() - 0.5) * 10 * speedMult, y: (Math.random() - 0.5) * 10 * speedMult };
+                this.radius = Math.random() * 4 + 1;
+                this.color = color;
+                this.life = 1.0;
+                this.decay = Math.random() * 0.04 + 0.01;
+            }
+            update() {
+                this.pos.x += this.vel.x;
+                this.pos.y += this.vel.y;
+                this.life -= this.decay;
+            }
+            draw(ctx) {
+                ctx.globalAlpha = this.life;
+                ctx.beginPath();
+                ctx.arc(this.pos.x, this.pos.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                ctx.globalAlpha = 1.0;
+            }
+        }
+
+        let player, ball;
+        let enemies = [];
+        let particles = [];
+
+        function init() {
+            resize();
+            player = new Player();
+            ball = new Ball();
+            enemies = [];
+            for(let i=0; i<7; i++) enemies.push(new Enemy(i));
+            particles = [];
+            
+            // Reset state
+            gameState.stress = 0;
+            gameState.score = 0;
+            gameState.enemyScore = 0;
+            gameState.timeLeft = 45;
+            gameState.hasBall = false;
+            gameState.shooting = false;
+            gameState.shootAngle = 0;
+            gameState.shootPower = 0;
+            gameState.grappled = false;
+            gameState.grappleTaps = 0;
+            gameState.grappleTimer = 0;
+            gameState.grappledBy = [];
+            gameState.enemiesFrozen = false;
+            goalkeeper = null;
+            applyDifficulty(0);
+
+            updateUI();
+            isGameOver = false;
+            // defeat/victory screens hidden via init
+            introScreen.classList.add('hidden');
+            document.getElementById('defeat-screen').classList.add('hidden');
+            document.getElementById('victory-screen').classList.add('hidden');
+            uiLayer.classList.remove('hidden');
+            document.body.classList.remove('shake', 'super-shake');
+            const nameDisplay = document.getElementById('player-name-display');
+            if (nameDisplay) nameDisplay.innerText = gameState.playerName || '';
+
+            // Cronómetro
+            if (window._timerInterval) clearInterval(window._timerInterval);
+            window._timerInterval = setInterval(() => {
+                if (!isGameRunning) { clearInterval(window._timerInterval); return; }
+                gameState.timeLeft--;
+                const td = document.getElementById('timer-display');
+                if (td) {
+                    td.innerText = gameState.timeLeft;
+                    td.style.color = gameState.timeLeft <= 10 ? '#ff003c' : '#fde047';
+                    td.style.textShadow = gameState.timeLeft <= 10 ? '0 0 12px rgba(255,0,60,0.9)' : '0 0 12px rgba(253,224,71,0.8)';
+                }
+                if (gameState.timeLeft <= 0) {
+                    clearInterval(window._timerInterval);
+                    if (isGameRunning) {
+                        const won = gameState.score > gameState.enemyScore;
+                        triggerGameOver(won,
+                            won ? '¡GANASTE!' : '¡TIEMPO AGOTADO!',
+                            won ? `${gameState.score} - ${gameState.enemyScore}. ¡La copa es tuya!`
+                                : `${gameState.score} - ${gameState.enemyScore}. Los Malandrines ganaron el partido.`
+                        );
+                    }
+                }
+            }, 1000);
+            
+            isGameRunning = true;
+            loop();
+        }
+
+        window.showInstructions = function() {
+            const nameInput = document.getElementById('player-name-input');
+            gameState.playerName = nameInput && nameInput.value.trim() ? nameInput.value.trim() : 'Jugador';
+
+            // Detectar dispositivo táctil
+            const isTouch = window.matchMedia('(pointer: coarse)').matches;
+            document.getElementById('instr-desktop').style.display = isTouch ? 'none' : 'block';
+            document.getElementById('instr-mobile').style.display  = isTouch ? 'block' : 'none';
+
+            document.getElementById('intro-screen').classList.add('hidden');
+            document.getElementById('instructions-screen').classList.remove('hidden');
+        }
+
+        window.launchGame = function() {
+            document.getElementById('instructions-screen').classList.add('hidden');
+            init();
+        }
+
+        window.startGame = window.launchGame; // compatibilidad resetGame
+
+        window.shareExperience = function() {
+            const shareUrl = 'LIGA_PENDIENTE'; // Se actualizará con la liga real
+            const text = `¡Estoy jugando Furia Amateur 7! ¿Puedes anotar 5 goles sin perder el control? Una experiencia de Vanguardia IA Lab.`;
+            if (navigator.share) {
+                navigator.share({ title: 'Furia Amateur 7', text, url: shareUrl }).catch(() => {});
+            } else {
+                const tw = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}`;
+                window.open(tw, '_blank');
+            }
+        }
+
+        function checkCollisions() {
+            if (gameState.enemiesFrozen) return;
+
+            // Jugador vs Balón (Dribbling)
+            let pbDist = Vector.dist(player.pos, ball.pos);
+            if (pbDist < player.radius + ball.radius) {
+                let pushDir = Vector.norm(Vector.sub(ball.pos, player.pos));
+                ball.vel.x += pushDir.x * 1.5;
+                ball.vel.y += pushDir.y * 1.5;
+            }
+
+            // Enemigos vs Balón — roban posesión
+            enemies.forEach(enemy => {
+                let ebDist = Vector.dist(enemy.pos, ball.pos);
+                if (ebDist < enemy.radius + ball.radius + 8) {
+                    if (gameState.hasBall) {
+                        gameState.hasBall = false;
+                        if (gameState.shooting) endShoot(false);
+                        const pushDir = Vector.norm(Vector.sub(ball.pos, enemy.pos));
+                        ball.vel.x = pushDir.x * 6;
+                        ball.vel.y = pushDir.y * 6;
+                        createParticles(ball.pos.x, ball.pos.y, '#ff003c', 8, 0.8);
+                    } else {
+                        const pushDir = Vector.norm(Vector.sub(ball.pos, enemy.pos));
+                        ball.vel.x += pushDir.x * 2.5;
+                        ball.vel.y += pushDir.y * 2.5;
+                    }
+                }
+            });
+
+            // Portero vs Balón
+            if (goalkeeper) {
+                let gbDist = Vector.dist(goalkeeper.pos, ball.pos);
+                if (gbDist < goalkeeper.radius + ball.radius) {
+                    let pushDir = Vector.norm(Vector.sub(ball.pos, goalkeeper.pos));
+                    ball.vel.x += pushDir.x * 3.5;
+                    ball.vel.y += pushDir.y * 3.5;
+                    createParticles(ball.pos.x, ball.pos.y, '#f59e0b', 10);
+                }
+            }
+
+            // Jugador vs Enemigos — Forcejeo
+            if (!gameState.grappleImmune) {
+                const attackers = [];
+                enemies.forEach(enemy => {
+                    if (enemy.stunTimer > 0) return; // paralizado, no ataca
+                    let peDist = Vector.dist(player.pos, enemy.pos);
+                    if (peDist < player.radius + enemy.radius + 4) {
+                        attackers.push(enemy);
+                        // Rebote físico leve
+                        const pushDir = Vector.norm(Vector.sub(player.pos, enemy.pos));
+                        player.vel.x += pushDir.x * 1.5;
+                        player.vel.y += pushDir.y * 1.5;
+                    }
+                });
+                if (attackers.length > 0 && !gameState.grappled) {
+                    startGrapple(attackers);
+                } else if (attackers.length > 0 && gameState.grappled) {
+                    startGrapple(attackers); // suma más al forcejeo
+                }
+            }
+        }
+
+        function triggerRefereeCall() {
+            gameState.enemiesFrozen = true;
+            refereeCallEl.classList.add('active');
+            gameState.stress = Math.max(0, gameState.stress - 10);
+            updateUI();
+            createParticles(player.pos.x, player.pos.y, '#fde047', 20); 
+
+            setTimeout(() => {
+                gameState.enemiesFrozen = false;
+                refereeCallEl.classList.remove('active');
+            }, 1500); 
+        }
+
+        function createParticles(x, y, color, count, speedMult = 1) {
+            for(let i=0; i<count; i++) particles.push(new Particle(x, y, color, speedMult));
+        }
+
+        // --- SISTEMA DE RESPIRACIÓN (TAP) ---
+        function tapBreathe() {
+            if (!isGameRunning || isGameOver) return;
+            gameState.stress = Math.max(0, gameState.stress - config.breatheTapRelief);
+            createParticles(player.pos.x, player.pos.y, '#aae2ff', 8);
+            updateUI();
+        }
+
+        // Evento botón móvil
+        document.getElementById('btn-breathe').addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (gameState.grappled) grappleTap();
+            else tapBreathe();
+        });
+
+        function addStress(amount) {
+            gameState.stress += amount;
+            if (gameState.stress > config.maxStress) gameState.stress = config.maxStress;
+            
+            if (gameState.stress >= config.maxStress * 0.95 && !document.body.classList.contains('super-shake')) {
+                 createParticles(player.pos.x, player.pos.y, '#ff0000', 30, 2);
+                 document.body.classList.add('super-shake');
+            }
+
+            updateUI();
+            
+            if (gameState.stress >= config.maxStress) {
+                createParticles(width/2, height/2, '#ff0000', 100, 3);
+                createParticles(width/2, height/2, '#ffffff', 50, 2);
+                setTimeout(() => {
+                     triggerGameOver(false, "¡RIÑA CAMPAL!", "Perdiste el control. El estrés te superó y el partido terminó en golpes. Te descalificaron.");
+                }, 200); 
+            }
+        }
+
+        function updateUI() {
+            let pct = (gameState.stress / config.maxStress) * 100;
+            stressFill.style.width = pct + '%';
+            
+            if (pct > 80) {
+                stressFill.style.boxShadow = '0 0 20px #ff0000, 0 0 40px #ff0000';
+                stressLabel.style.color = '#ff4444';
+                bloodOverlay.style.opacity = (pct - 80) / 20 * 0.6;
+            } else {
+                stressFill.style.boxShadow = '0 0 10px rgba(255,0,0,0.5)';
+                stressLabel.style.color = 'rgba(255,255,255,0.5)';
+                bloodOverlay.style.opacity = 0;
+                document.body.classList.remove('super-shake'); 
+            }
+
+            const sp = document.getElementById('score-player');
+            const se = document.getElementById('score-enemy');
+            if (sp) sp.innerText = gameState.score;
+            if (se) se.innerText = gameState.enemyScore;
+        }
+
+        function scoreGoal() {
+            gameState.score++;
+            createParticles(ball.pos.x, ball.pos.y, '#00ffaa', 60, 1.5);
+            createParticles(ball.pos.x, ball.pos.y, '#ffffff', 20, 1);
+            
+            if (gameState.score >= 5) {
+                triggerGameOver(true, "¡CAMPEÓN!", "Anotaste los 5 goles manteniendo la cabeza fría. Demostraste que el fútbol no necesita violencia.");
+                return;
+            }
+
+            // Aplicar dificultad de la nueva fase
+            applyDifficulty(gameState.score);
+
+            // Activar portero en fase 4 (al ir por el 5to gol)
+            if (gameState.score === 4) {
+                goalkeeper = new Goalkeeper();
+            }
+
+            // Reset positions
+            ball.pos = { x: width/2, y: HUD_H + (height - HUD_H) / 2 };
+            ball.vel = { x: 0, y: 0 };
+            gameState.hasBall = false;
+            enemies.forEach((e, i) => {
+                e.pos = { x: Math.random() * (width - 80) + 40, y: HUD_H + 16 + Math.random() * (height * 0.30) };
+                e.vel = { x: 0, y: 0 };
+                e.reactionTimer = 0;
+            });
+            player.pos = { x: width/2, y: height - 150 };
+            
+            gameState.stress = Math.max(0, gameState.stress - 30);
+            updateUI();
+        }
+
+        // --- TABLA DE DIFICULTAD PROGRESIVA ---
+        // Goles 1-3: accesibles. Gol 4: difícil. Gol 5: al límite.
+        const DIFFICULTY = [
+            // fase 0 — antes del 1er gol: lentos, reactivos, mucho espacio
+            { speed: 0.28, aggroMod: -0.35, reactionMax: 18, magnetRadius: 220, magnetForce: 0.6 },
+            // fase 1 — tras 1er gol: un poco más vivos, siguen dando espacio
+            { speed: 0.40, aggroMod: -0.15, reactionMax: 13, magnetRadius: 160, magnetForce: 0.45 },
+            // fase 2 — tras 2do gol: velocidad media, empiezan a cerrar
+            { speed: 0.55, aggroMod:  0.05, reactionMax:  9, magnetRadius: 90,  magnetForce: 0.25 },
+            // fase 3 — tras 3er gol: rápidos, agresivos, sin imán, ya es difícil
+            { speed: 0.78, aggroMod:  0.30, reactionMax:  5, magnetRadius: 0,   magnetForce: 0 },
+            // fase 4 — último gol: velocidad máxima, sin imán, portero + presión total
+            { speed: 0.98, aggroMod:  0.55, reactionMax:  2, magnetRadius: 0,   magnetForce: 0 },
+        ];
+
+        function applyDifficulty(fase) {
+            const d = DIFFICULTY[Math.min(fase, DIFFICULTY.length - 1)];
+            config.enemyCurrentSpeed = d.speed;
+            enemies.forEach(e => {
+                e.reactionDelay = Math.random() * d.reactionMax;
+                e.reactionTimer = 0;
+            });
+        }
+
+        // --- SISTEMA DE FORCEJEO ---
+        const GRAPPLE_TAPS_NEEDED = 6;   // taps para liberarse
+        const GRAPPLE_TAP_WINDOW  = 120; // frames máximos para tapear (2 seg a 60fps)
+        const GRAPPLE_STRESS_RATE = 0.5; // estrés por frame mientras está agarrado
+        const GRAPPLE_FREE_TIME   = 180; // frames de inmunidad tras liberarse (~3 seg)
+
+        function startGrapple(enemies) {
+            if (gameState.grappled) {
+                // Agregar más enemigos al forcejeo
+                enemies.forEach(e => {
+                    if (!gameState.grappledBy.includes(e)) gameState.grappledBy.push(e);
+                });
+                return;
+            }
+            gameState.grappled = true;
+            gameState.grappleTaps = 0;
+            gameState.grappleTimer = 0;
+            gameState.grappledBy = [...enemies];
+            gameState.hasBall = false;
+            if (gameState.shooting) endShoot(false);
+            // Mostrar indicador
+            refereeCallEl.innerText = '¡TAP! ¡TAP! ¡TAP!';
+            refereeCallEl.style.color = '#ff6b00';
+            refereeCallEl.style.textShadow = '0 0 20px #ff6b00';
+            refereeCallEl.classList.add('active');
+        }
+
+        function grappleTap() {
+            if (!gameState.grappled) return;
+            gameState.grappleTaps++;
+            createParticles(player.pos.x, player.pos.y, '#fde047', 5, 0.6);
+            if (gameState.grappleTaps >= GRAPPLE_TAPS_NEEDED) {
+                resolveGrapple(true);
+            }
+        }
+
+        function resolveGrapple(escaped) {
+            gameState.grappled = false;
+            refereeCallEl.classList.remove('active');
+
+            if (escaped) {
+                // Expulsar a los rivales a las orillas
+                gameState.grappledBy.forEach(e => {
+                    const side = Math.random() < 0.5 ? 30 : width - 30;
+                    e.pos.x = side;
+                    e.pos.y = HUD_H + 30 + Math.random() * (height - HUD_H - 60);
+                    e.vel.x = 0; e.vel.y = 0;
+                    e.stunTimer = GRAPPLE_FREE_TIME; // paralizados
+                });
+                gameState.grappledBy = [];
+                // Inmunidad temporal al jugador
+                gameState.grappleImmune = GRAPPLE_FREE_TIME;
+                createParticles(player.pos.x, player.pos.y, '#00ff80', 30, 1.2);
+                refereeCallEl.innerText = '¡LIBERADO!';
+                refereeCallEl.style.color = '#00ff80';
+                refereeCallEl.style.textShadow = '0 0 20px #00ff80';
+                refereeCallEl.classList.add('active');
+                setTimeout(() => refereeCallEl.classList.remove('active'), 800);
+            } else {
+                // Tiempo agotado: estrés máximo
+                addStress(35);
+                gameState.grappledBy = [];
+                document.body.classList.add('shake');
+                setTimeout(() => document.body.classList.remove('shake'), 600);
+            }
+            gameState.grappleTaps = 0;
+            gameState.grappleTimer = 0;
+        }
+
+        function updateGrapple() {
+            if (!gameState.grappled) {
+                if (gameState.grappleImmune > 0) gameState.grappleImmune--;
+                // Reducir stunTimer de enemigos
+                enemies.forEach(e => { if (e.stunTimer > 0) e.stunTimer--; });
+                return;
+            }
+            gameState.grappleTimer++;
+            addStress(GRAPPLE_STRESS_RATE);
+
+            // Parpadeo del indicador
+            if (gameState.grappleTimer % 8 < 4) {
+                refereeCallEl.classList.add('active');
+            }
+
+            // Tiempo agotado sin tapear suficiente
+            if (gameState.grappleTimer >= GRAPPLE_TAP_WINDOW) {
+                resolveGrapple(false);
+            }
+        }
+
+        // Barra visual de forcejeo (dibujada en el loop)
+        function drawGrappleBar() {
+            if (!gameState.grappled) return;
+            const pct = gameState.grappleTaps / GRAPPLE_TAPS_NEEDED;
+            const barW = 100;
+            const barH = 10;
+            const bx = player.pos.x - barW/2;
+            const by = player.pos.y - player.radius - 28;
+
+            ctx.save();
+            // Fondo
+            ctx.fillStyle = 'rgba(0,0,0,0.6)';
+            ctx.roundRect(bx, by, barW, barH, 4);
+            ctx.fill();
+            // Progreso
+            ctx.fillStyle = `hsl(${pct * 120}, 100%, 55%)`;
+            ctx.roundRect(bx, by, barW * pct, barH, 4);
+            ctx.fill();
+            // Label
+            ctx.font = 'bold 10px Inter, sans-serif';
+            ctx.fillStyle = 'white';
+            ctx.textAlign = 'center';
+            ctx.fillText('¡TALEA!', player.pos.x, by - 4);
+            ctx.restore();
+        }
+
+        function applyMagnet() {
+            const fase = Math.min(gameState.score, DIFFICULTY.length - 1);
+            const d = DIFFICULTY[fase];
+            if (d.magnetRadius <= 0) return;
+
+            const goalX = width / 2;
+            const goalY = 20; // margen superior (portería rival)
+            const dx = goalX - ball.pos.x;
+            const dy = goalY - ball.pos.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+
+            if (dist < d.magnetRadius && dist > 1) {
+                ball.vel.x += (dx / dist) * d.magnetForce;
+                ball.vel.y += (dy / dist) * d.magnetForce;
+            }
+        }
+
+        function concedGoal() {
+            gameState.enemyScore++;
+            createParticles(ball.pos.x, ball.pos.y, '#ff003c', 40, 1.5);
+            createParticles(ball.pos.x, ball.pos.y, '#ffffff', 15, 1);
+            document.body.classList.add('shake');
+            setTimeout(() => document.body.classList.remove('shake'), 600);
+
+            refereeCallEl.innerText = '¡GOL RIVAL!';
+            refereeCallEl.style.color = '#ff003c';
+            refereeCallEl.style.textShadow = '0 0 20px #ff003c';
+            refereeCallEl.classList.add('active');
+            setTimeout(() => {
+                refereeCallEl.classList.remove('active');
+                refereeCallEl.innerText = '¡FALTA!';
+                refereeCallEl.style.color = '#fde047';
+                refereeCallEl.style.textShadow = '0 0 20px #fde047';
+            }, 1500);
+
+            updateUI();
+
+            if (gameState.enemyScore >= 3) {
+                clearInterval(window._timerInterval);
+                setTimeout(() => {
+                    triggerGameOver(false, '¡TE GOLEARON!', `Los Malandrines te metieron 3 goles. ${gameState.score} - ${gameState.enemyScore}. Mala noche.`);
+                }, 400);
+                return;
+            }
+
+            // No subir estrés extra, sólo penalizar en marcador
+            ball.pos = { x: width/2, y: HUD_H + (height - HUD_H) / 2 };
+            ball.vel = { x: 0, y: 0 };
+            gameState.hasBall = false;
+            player.pos = { x: width/2, y: height - 150 };
+            player.vel = { x: 0, y: 0 };
+        }
+
+        function triggerGameOver(isWin, title, desc) {
+            isGameOver = true;
+            isGameRunning = false;
+            if (window._timerInterval) clearInterval(window._timerInterval);
+
+            const defeatScreen  = document.getElementById('defeat-screen');
+            const victoryScreen = document.getElementById('victory-screen');
+
+            if (isWin) {
+                const vs = document.getElementById('victory-score');
+                if (vs) vs.innerText = `${gameState.score} — ${gameState.enemyScore}`;
+                victoryScreen.classList.remove('hidden');
+            } else {
+                const dt = document.getElementById('defeat-title');
+                const ds = document.getElementById('defeat-score');
+                const dl = document.getElementById('defeat-line1');
+                if (dt) dt.innerText = title;
+                if (ds) ds.innerText = `${gameState.score} — ${gameState.enemyScore}`;
+                if (dl) dl.innerText = desc;
+                defeatScreen.classList.remove('hidden');
+            }
+
+            uiLayer.classList.add('hidden');
+            document.body.classList.remove('shake', 'super-shake');
+        }
+
+        window.resetGame = function() {
+            document.getElementById('defeat-screen').classList.add('hidden');
+            document.getElementById('victory-screen').classList.add('hidden');
+            document.getElementById('instructions-screen').classList.add('hidden');
+            document.getElementById('intro-screen').classList.remove('hidden');
+        }
+
+        window.toggleHelp = function() {
+            const p = document.getElementById('help-panel');
+            if (p) p.style.display = p.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // --- SISTEMA DE DISPARO ---
+        const SHOOT_SPREAD = Math.PI * 0.5;  // oscilación ±90° total
+        const SHOOT_SPEED  = 0.038;          // velocidad oscilación
+        const SHOOT_FORCE  = 30;             // fuerza máxima disparo
+        const SLOW_FACTOR  = 0.35;           // velocidad relativa de enemigos durante disparo
+
+        function startShoot() {
+            if (!gameState.hasBall || gameState.shooting || !isGameRunning || isGameOver) return;
+            gameState.shooting = true;
+            gameState.shootAngle = 0;
+            gameState.shootAngleDir = 1;
+            gameState.shootPower = 0;
+            gameState.shootPowerDir = 1;
+        }
+
+        function endShoot(doShoot = true) {
+            if (!gameState.shooting) return;
+            gameState.shooting = false;
+            if (doShoot && ball) {
+                const baseAngle = -Math.PI / 2;
+                const finalAngle = baseAngle + gameState.shootAngle;
+                const power = gameState.shootPower; // 0–1
+                const force = SHOOT_FORCE * (0.4 + power * 0.6);
+                ball.vel.x = Math.cos(finalAngle) * force;
+                ball.vel.y = Math.sin(finalAngle) * force;
+                gameState.hasBall = false;
+                createParticles(ball.pos.x, ball.pos.y, '#ffffff', 22, 1.3);
+            }
+        }
+
+        function updateShootAngle() {
+            if (!gameState.shooting) return;
+            // Oscila ángulo
+            gameState.shootAngle += SHOOT_SPEED * gameState.shootAngleDir;
+            if (Math.abs(gameState.shootAngle) >= SHOOT_SPREAD) {
+                gameState.shootAngleDir *= -1;
+            }
+            // Acumula poder mientras se mantiene presionado (0→1 en ~1.5s)
+            gameState.shootPower = Math.min(1, (gameState.shootPower || 0) + 0.012);
+        }
+
+        function drawShootArrow() {
+            if (!gameState.shooting || !ball) return;
+
+            const baseAngle = -Math.PI / 2;
+            const angle = baseAngle + gameState.shootAngle;
+            const arrowLen = 55 + (gameState.shootPower * 35); // crece con el poder
+            const bx = ball.pos.x;
+            const by = ball.pos.y;
+            const ex = bx + Math.cos(angle) * arrowLen;
+            const ey = by + Math.sin(angle) * arrowLen;
+
+            const deviation = Math.abs(gameState.shootAngle) / SHOOT_SPREAD;
+            const r = Math.round(deviation * 255);
+            const g = Math.round((1 - deviation) * 220);
+            const arrowColor = `rgba(${r},${g},50,0.95)`;
+
+            ctx.save();
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = arrowColor;
+            ctx.strokeStyle = arrowColor;
+            ctx.lineWidth = 4;
+            ctx.setLineDash([]);
+            ctx.beginPath();
+            ctx.moveTo(bx, by);
+            ctx.lineTo(ex, ey);
+            ctx.stroke();
+
+            // Punta de flecha
+            const headLen = 13;
+            const headAngle = 0.42;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(ex, ey);
+            ctx.lineTo(ex - headLen * Math.cos(angle - headAngle), ey - headLen * Math.sin(angle - headAngle));
+            ctx.moveTo(ex, ey);
+            ctx.lineTo(ex - headLen * Math.cos(angle + headAngle), ey - headLen * Math.sin(angle + headAngle));
+            ctx.stroke();
+
+            // --- BARRA DE PODER ---
+            const barW = 60;
+            const barH = 7;
+            const barX = bx - barW / 2;
+            const barY = by + ball.radius + 14;
+            // Fondo
+            ctx.fillStyle = 'rgba(0,0,0,0.5)';
+            ctx.roundRect(barX, barY, barW, barH, 3);
+            ctx.fill();
+            // Relleno — color por nivel de poder
+            const pr = Math.round(gameState.shootPower * 255);
+            const pg = Math.round((1 - gameState.shootPower) * 180);
+            ctx.fillStyle = `rgb(${pr},${pg},30)`;
+            ctx.roundRect(barX, barY, barW * gameState.shootPower, barH, 3);
+            ctx.fill();
+            // Label
+            ctx.font = 'bold 9px Inter, sans-serif';
+            ctx.fillStyle = 'rgba(255,255,255,0.7)';
+            ctx.textAlign = 'center';
+            ctx.shadowBlur = 0;
+            ctx.fillText('PODER', bx, barY + barH + 10);
+            ctx.restore();
+        }
+
+        // --- CONTROLES TECLADO ---
+        window.addEventListener('keydown', (e) => {
+            if (!isGameRunning) return;
+            const key = e.key.toLowerCase();
+            if (key === 'w' || e.key === 'ArrowUp')    gameState.keys.up    = true;
+            if (key === 'a' || e.key === 'ArrowLeft')  gameState.keys.left  = true;
+            if (key === 's' || e.key === 'ArrowDown')  gameState.keys.down  = true;
+            if (key === 'd' || e.key === 'ArrowRight') gameState.keys.right = true;
+            if (e.code === 'Space' && !e.repeat) {
+                if (gameState.grappled) grappleTap();
+                else tapBreathe();
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (!isGameRunning) return;
+            const key = e.key.toLowerCase();
+            if (key === 'w' || e.key === 'ArrowUp')    gameState.keys.up    = false;
+            if (key === 'a' || e.key === 'ArrowLeft')  gameState.keys.left  = false;
+            if (key === 's' || e.key === 'ArrowDown')  gameState.keys.down  = false;
+            if (key === 'd' || e.key === 'ArrowRight') gameState.keys.right = false;
+        });
+
+        // --- DISPARO: click en desktop, tap en mobile sobre canvas ---
+        canvas.addEventListener('mousedown', (e) => {
+            if (!isGameRunning) return;
+            startShoot();
+        });
+        window.addEventListener('mouseup', (e) => {
+            if (!isGameRunning) return;
+            endShoot(true);
+        });
+
+        // Touch sobre canvas (excluye joystick y botones)
+        canvas.addEventListener('touchstart', (e) => {
+            if (!isGameRunning) return;
+            // Ignorar si el toque viene del joystick o btn-breathe
+            startShoot();
+        }, { passive: true });
+        canvas.addEventListener('touchend', (e) => {
+            if (!isGameRunning) return;
+            endShoot(true);
+        }, { passive: true });
+
+        // Botón móvil dedicado
+        const btnShootMobile = document.getElementById('btn-shoot-mobile');
+        if (btnShootMobile) {
+            btnShootMobile.addEventListener('touchstart', (e) => { e.stopPropagation(); startShoot(); }, { passive: true });
+            btnShootMobile.addEventListener('touchend',   (e) => { e.stopPropagation(); endShoot(true); }, { passive: true });
+        }
+
+        // --- SISTEMA DE JOYSTICK MÓVIL ---
+        const joystickZone = document.getElementById('joystick');
+        const knob = document.getElementById('knob');
+        let joyCenter = {x: 0, y: 0};
+        let joyActive = false;
+
+        joystickZone.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            let rect = joystickZone.getBoundingClientRect();
+            joyCenter = { x: rect.left + rect.width/2, y: rect.top + rect.height/2 };
+            joyActive = true;
+            updateJoystick(e.touches[0]);
+        });
+        
+        joystickZone.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if(joyActive) updateJoystick(e.touches[0]);
+        });
+        
+        joystickZone.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            joyActive = false;
+            gameState.joystick = {x: 0, y: 0};
+            knob.style.transform = `translate(-50%, -50%)`;
+        });
+
+        function updateJoystick(touch) {
+            let dx = touch.clientX - joyCenter.x;
+            let dy = touch.clientY - joyCenter.y;
+            let distance = Math.sqrt(dx*dx + dy*dy);
+            let maxDist = 40; // Radio del joystick visual
+            
+            if (distance > maxDist) {
+                dx = (dx / distance) * maxDist;
+                dy = (dy / distance) * maxDist;
+            }
+            
+            knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+            
+            // Normalizar valores entre -1 y 1 para la velocidad del jugador
+            gameState.joystick = {
+                x: dx / maxDist,
+                y: dy / maxDist
+            };
+        }
+
+
+        const HUD_H = 72; // altura real de la barra superior — cancha empieza aquí
+
+        function drawPitch(ctx) {
+            ctx.fillStyle = '#061a10';
+            ctx.fillRect(0, 0, width, height);
+
+            const mx   = 30;
+            const myT  = HUD_H + 16;   // margen superior: debajo de la barra
+            const myB  = 20;            // margen inferior
+            const areaH   = 90;
+            const areaChH = 38;
+            const pitchH  = height - myT - myB; // altura real de juego
+
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#34d399';
+
+            // Borde cancha
+            ctx.strokeStyle = 'rgba(52, 211, 153, 0.3)';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(mx, myT, width - mx*2, pitchH);
+
+            // Línea de medio campo
+            const midY = myT + pitchH / 2;
+            ctx.beginPath();
+            ctx.moveTo(mx, midY);
+            ctx.lineTo(width - mx, midY);
+            ctx.stroke();
+
+            // Círculo central
+            ctx.beginPath();
+            ctx.arc(width/2, midY, 55, 0, Math.PI*2);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(width/2, midY, 4, 0, Math.PI*2);
+            ctx.fillStyle = 'rgba(52,211,153,0.5)';
+            ctx.fill();
+
+            // --- PORTERÍA RIVAL (arriba, verde) ---
+            ctx.fillStyle = 'rgba(52, 211, 153, 0.15)';
+            ctx.fillRect(width/2 - GOAL_W/2, myT - GOAL_D, GOAL_W, GOAL_D);
+            ctx.strokeStyle = 'rgba(52, 211, 153, 0.9)';
+            ctx.lineWidth = 3;
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = '#34d399';
+            ctx.strokeRect(width/2 - GOAL_W/2, myT - GOAL_D, GOAL_W, GOAL_D);
+            // Área grande rival
+            ctx.strokeStyle = 'rgba(52, 211, 153, 0.25)';
+            ctx.lineWidth = 1.5;
+            ctx.shadowBlur = 6;
+            ctx.strokeRect(width/2 - GOAL_W/2 - 35, myT, GOAL_W + 70, areaH);
+            // Área chica rival
+            ctx.strokeStyle = 'rgba(52, 211, 153, 0.45)';
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(width/2 - GOAL_W/2 + 10, myT, GOAL_W - 20, areaChH);
+
+            // --- PORTERÍA PROPIA (abajo, roja) ---
+            const botY = myT + pitchH;
+            ctx.fillStyle = 'rgba(255, 0, 60, 0.15)';
+            ctx.fillRect(width/2 - GOAL_W/2, botY, GOAL_W, GOAL_D);
+            ctx.strokeStyle = 'rgba(255, 0, 60, 0.9)';
+            ctx.lineWidth = 3;
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = '#ff003c';
+            ctx.strokeRect(width/2 - GOAL_W/2, botY, GOAL_W, GOAL_D);
+            // Área grande propia
+            ctx.strokeStyle = 'rgba(255, 0, 60, 0.25)';
+            ctx.lineWidth = 1.5;
+            ctx.shadowBlur = 6;
+            ctx.strokeRect(width/2 - GOAL_W/2 - 35, botY - areaH, GOAL_W + 70, areaH);
+            // Área chica propia
+            ctx.strokeStyle = 'rgba(255, 0, 60, 0.45)';
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(width/2 - GOAL_W/2 + 10, botY - areaChH, GOAL_W - 20, areaChH);
+
+            ctx.shadowBlur = 0;
+        }
+
+        function drawInitialEntities() {
+             if (!player) player = new Player();
+             if (!ball) ball = new Ball();
+             if (enemies.length === 0) {
+                 for(let i=0; i<7; i++) enemies.push(new Enemy(i));
+             }
+             player.draw(ctx);
+             ball.draw(ctx);
+             enemies.forEach(e => e.draw(ctx));
+        }
+
+        // drawAimLine reemplazado por drawShootArrow
+
+        function loop() {
+            if (!isGameRunning) return;
+
+            ctx.clearRect(0, 0, width, height);
+            drawPitch(ctx);
+
+            gameState.stress += config.passiveStressRate;
+            updateUI();
+
+            // Tiempo lento durante disparo: enemigos más lentos pero siguen moviéndose
+            const speedMod = gameState.shooting ? SLOW_FACTOR : 1.0;
+            const savedSpeed = config.enemyCurrentSpeed;
+            config.enemyCurrentSpeed = savedSpeed * speedMod;
+
+            player.update();
+            ball.update();
+            enemies.forEach(e => e.update(player));
+            if (goalkeeper) goalkeeper.update();
+
+            config.enemyCurrentSpeed = savedSpeed; // restaurar
+
+            updateShootAngle();
+            updateGrapple();
+            applyMagnet();
+            checkCollisions();
+
+            drawShootArrow();
+            drawGrappleBar();
+
+            ball.draw(ctx);
+            player.draw(ctx);
+            enemies.forEach(e => e.draw(ctx));
+            if (goalkeeper) goalkeeper.draw(ctx);
+
+            // Indicador de posesión: aura verde alrededor del jugador
+            if (gameState.hasBall && !gameState.shooting) {
+                ctx.beginPath();
+                ctx.arc(player.pos.x, player.pos.y, player.radius + 7, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(0,255,128,0.5)';
+                ctx.lineWidth = 2;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = '#00ff80';
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+            }
+
+            for(let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.update();
+                p.draw(ctx);
+                if(p.life <= 0) particles.splice(i, 1);
+            }
+
+            animationId = requestAnimationFrame(loop);
+        }
+
+        resize();
+        drawPitch(ctx);
+        drawInitialEntities();
+
+    </script>
+</body>
+</html>
